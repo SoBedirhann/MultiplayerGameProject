@@ -8,7 +8,7 @@ const io = require("socket.io")(server);
 
 // Define a route to handle requests to the root URL
 app.get("/", (req, res) => {
-  res.send("Hello World!");
+    res.sendfile('index.html');
 });
 app.use(cors({
   origin: "http://localhost:3000",
