@@ -4,9 +4,12 @@ const app = express();
 const http = require("http");
 const port = 3000;
 
+app.set("view engine", "ejs");
+
 // Define a route to handle requests to the root URL
 app.get("/", (req, res) => {
-    res.sendfile('index.html');
+    //res.sendfile('index.html');
+    res.render('index', {name:'emre',surname:'ekiz'});
 });
 app.use(cors({
     origin: "http://localhost:3000",
@@ -32,7 +35,8 @@ app.set("io", io);
 app.set("game", gameNamespace);
 
 gameNamespace.on('connection', (socket) => {
-    console.log(socket);
+    //console.log(socket);
+    console.log("asd");
 })
 
 server.listen(port);
