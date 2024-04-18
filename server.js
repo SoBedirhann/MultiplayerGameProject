@@ -11,120 +11,140 @@ app.get("/", (req, res) => {
     res.sendfile('index.html');
 });
 app.use(cors({
-  origin: "http://localhost:3000",
+    origin: "http://localhost:3000",
 }));
 // Serve static files from the 'public' directory
 app.use(express.static("public"));
 
 // Serve the Socket.IO client library
 app.use(
-  "/socket.io",
-  express.static(__dirname + "/node_modules/socket.io/client-dist")
+    "/socket.io",
+    express.static(__dirname + "/node_modules/socket.io/client-dist")
 );
 
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
-});
-io.on("connection", (socket) => {
-  console.log("Client connected");
-  socket.on("message", (message) => {
-    console.log(`Received message: ${message}`);
-    // Handle message from client
-  });
-  socket.on("disconnect", () => {
-    console.log("Client disconnected");
-    // Handle client disconnection
-  });
+    console.log(`Example app listening on port ${port}`);
 });
 
-let Players = {};
-io.on("connection", (socket) => {
-  let startingPositions = [
-    { x: 100, y: 100 },
-    { x: 200, y: 200 },
-    { x: 300, y: 300 },
-    { x: 400, y: 400 },
-  ];
-  let randomIndex = Math.floor(Math.random() * startingPositions.length);
-  let startingPosition = startingPositions[randomIndex];
+const gameNamespace = io.of('/game');
 
-  Players[socket.id] = {
-    health: 5,
-    ammo: 3,
-    x: startingPosition.x,
-    y: startingPosition.y,
-  };
-  socket.emit("initialPlayerState", Players[socket.id]);
+gameNamespace.on("connect", (socket) => {
+    console.log("BAĞLANDI!!!!");
+});
 
-  socket.on("disconnect", () => {
-    delete Players[socket.id];
-  });
+/*
+const gameNamespace = io.of('/game');
 
-  socket.on("move", (data) => {
-    // Update player position
-    Players[socket.id].x = data.x;
-    Players[socket.id].y = data.y;
+gameNamespace.on('connection', (socket) => {
+    //io.on("connection", (socket) => {
+    //    console.log("Client connected");
+    //    socket.on("message", (message) => {
+    //        console.log(`Received message: ${message}`);
+    //        // Handle message from client
+    //    });
+    //    socket.on("disconnect", () => {
+    //        console.log("Client disconnected");
+    //        // Handle client disconnection
+    //    });
+    //});
 
-    // Broadcast updated player position to all clients except the sender
-    socket.broadcast.emit("playerMoved", {
-      playerId: socket.id,
-      x: data.x,
-      y: data.y,
-    });
-  });
+    let Players = {};
+    io.on("connection", (socket) => {
 
-  // Handle player shooting
-  socket.on("shoot", (data) => {
-    // Create a new bullet object with shooter's position and direction
-    let bullet = {
-      x: Players[socket.id].x,
-      y: Players[socket.id].y,
-      direction: data.direction, // Assuming 'data.direction' contains the shooting direction (e.g., 'up', 'down', 'left', 'right')
-    };
+        socket.on("message", (message) => {
+            console.log(`Received message: ${message}`);
+            // Handle message from client
+        });
 
-    // Broadcast the new bullet object to all connected clients
-    io.emit("bulletCreated", bullet);
-  });
+        let startingPositions = [
+            { x: 100, y: 100 },
+            { x: 200, y: 200 },
+            { x: 300, y: 300 },
+            { x: 400, y: 400 },
+        ];
+        let randomIndex = Math.floor(Math.random() * startingPositions.length);
+        let startingPosition = startingPositions[randomIndex];
 
-  // Handle bullet-player collisions
-  function checkCollisions() {
-    for (let bulletId in bullets) {
-      let bullet = bullet[bulletId];
-      for (let playerId in players) {
-        let player = Players[playerId];
-        // Check if the bullet collides with the player
-        if (bullet.x === player.x && bullet.y === player.y) {
-          // Deduct health points from the player
-          player.health -= 1;
-          // Remove the bullet from the game
-          delete bullet[bulletId];
-          // Emit an event to update player health on all clients
-          io.emit("playerHealthUpdated", {
-            playerId: playerId,
-            health: player.health,
-          });
+        Players[socket.id] = {
+            health: 5,
+            ammo: 3,
+            x: startingPosition.x,
+            y: startingPosition.y,
+        };
+        socket.emit("initialPlayerState", Players[socket.id]);
+
+        socket.on("disconnect", () => {
+            delete Players[socket.id];
+        });
+
+        socket.on("move", (data) => {
+            // Update player position
+            Players[socket.id].x = data.x;
+            Players[socket.id].y = data.y;
+
+            // Broadcast updated player position to all clients except the sender
+            socket.broadcast.emit("playerMoved", {
+                playerId: socket.id,
+                x: data.x,
+                y: data.y,
+            });
+        });
+
+        // Handle player shooting
+        socket.on("shoot", (data) => {
+            // Create a new bullet object with shooter's position and direction
+            let bullet = {
+                x: Players[socket.id].x,
+                y: Players[socket.id].y,
+                direction: data.direction, // Assuming 'data.direction' contains the shooting direction (e.g., 'up', 'down', 'left', 'right')
+            };
+
+            // Broadcast the new bullet object to all connected clients
+            io.emit("bulletCreated", bullet);
+        });
+
+        // Handle bullet-player collisions
+        function checkCollisions() {
+            for (let bulletId in bullets) {
+                let bullet = bullet[bulletId];
+                for (let playerId in players) {
+                    let player = Players[playerId];
+                    // Check if the bullet collides with the player
+                    if (bullet.x === player.x && bullet.y === player.y) {
+                        // Deduct health points from the player
+                        player.health -= 1;
+                        // Remove the bullet from the game
+                        delete bullet[bulletId];
+                        // Emit an event to update player health on all clients
+                        io.emit("playerHealthUpdated", {
+                            playerId: playerId,
+                            health: player.health,
+                        });
+                    }
+                }
+            }
         }
-      }
-    }
-  }
 
-  // Periodically check for collisions
-  setInterval(checkCollisions, 100); // Adjust the interval as needed
+        // Periodically check for collisions
+        setInterval(checkCollisions, 100); // Adjust the interval as needed
 
-  // Handle player deaths and game over
-  function checkGameOver() {
-    let alivePlayers = Object.keys(players).filter(
-      (playerId) => players[playerId].health > 0
-    );
-    // Check if there is only one player left standing
-    if (alivePlayers.length === 1) {
-      // Declare the remaining player as the winner
-      let winnerId = alivePlayers[0];
-      // Broadcast the game-over event to all connected clients
-      io.emit("gameOver", { winnerId: winnerId });
-    }
-  }
+        // Handle player deaths and game over
+        function checkGameOver() {
+            let alivePlayers = Object.keys(players).filter(
+                (playerId) => players[playerId].health > 0
+            );
+            // Check if there is only one player left standing
+            if (alivePlayers.length === 1) {
+                // Declare the remaining player as the winner
+                let winnerId = alivePlayers[0];
+                // Broadcast the game-over event to all connected clients
+                io.emit("gameOver", { winnerId: winnerId });
+            }
+        }
 
-  // Periodically check for game over
-  setInterval(checkGameOver, 1000); // Adjust the interval as needed
+        // Periodically check for game over
+        setInterval(checkGameOver, 1000); // Adjust the interval as needed
+    });
 });
+*/
+

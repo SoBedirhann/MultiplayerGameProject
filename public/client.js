@@ -1,4 +1,4 @@
-const socket = io(); // Assumes the socket.io library is included in your HTML
+const socket = io('/game'); // Assumes the socket.io library is included in your HTML
 socket.on("connect", () => {
   console.log("Connected to server");
 });
@@ -9,6 +9,10 @@ socket.on("message", (message) => {
 socket.on("disconnect", () => {
   console.log("Disconnected from server");
 });
+
+//socket.emit('connect', { "hellow": "orld" });
+
+
 // Handle player movement input (e.g., arrow keys)
 document.addEventListener('keydown', (event) => {
     // Define movement speed
