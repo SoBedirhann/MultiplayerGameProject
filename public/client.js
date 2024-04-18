@@ -95,16 +95,34 @@ boxImg.src = 'box.png';
 
 // Player and box positions (dummy positions for demonstration)
 const players = [
-    { x: 100, y: 100, img: blueCharImg },
-    { x: 200, y: 200, img: redCharImg },
-    { x: 300, y: 300, img: greenCharImg },
-    { x: 400, y: 400, img: yellowCharImg }
+    { x: 50, y: 300, img: blueCharImg },
+    { x: 600, y: 50, img: redCharImg },
+    { x: 1130, y: 300, img: greenCharImg },
+    { x: 600, y: 600, img: yellowCharImg }
 ];
 
 const boxes = [
-    { x: 150, y: 150 },
-    { x: 250, y: 250 },
-    { x: 350, y: 350 }
+  { x: 200, y: 150 },
+  { x: 200, y: 214 },
+  { x: 264, y: 150 },
+  { x: 200, y: 400 },
+  { x: 200, y: 464 },
+  { x: 264, y: 464 },
+  { x: 660, y: 392 },
+  { x: 596, y: 392 },
+  { x: 532, y: 392 },
+  { x: 660, y: 328 },
+  { x: 596, y: 328 },
+  { x: 532, y: 328 },
+  { x: 660, y: 264 },
+  { x: 596, y: 264 },
+  { x: 532, y: 264 },
+  { x: 980, y: 150 },
+  { x: 980, y: 214 },
+  { x: 916, y: 150 },
+  { x: 980, y: 400 },
+  { x: 980, y: 464 },
+  { x: 916, y: 464 },
 ];
 
 // Function to render the game
