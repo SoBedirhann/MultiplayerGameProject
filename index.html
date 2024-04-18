@@ -1,0 +1,34 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multiplayer Game</title>
+  <!-- Link to your CSS stylesheet if needed -->
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    #game-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-color:rgb(0, 80, 0);
+    }
+  </style>
+</head>
+<body>
+  <!-- Container for the game canvas -->
+  
+  <div id="game-container">
+    <!-- The game canvas will be rendered here -->
+    <canvas id="game-canvas" width="1280" height="720"></canvas>
+  </div>
+
+  <!-- Include the Socket.IO client library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.3/socket.io.js"></script>
+  <!-- Include your client-side JavaScript file -->
+  <script src="client.js"></script>
+</body>
+</html>
