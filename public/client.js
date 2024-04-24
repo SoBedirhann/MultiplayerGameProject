@@ -1,4 +1,9 @@
+//client.js
 const socket = io('/game'); // Assumes the socket.io library is included in your HTML
+
+const MAX_AMMO = 3;
+const BULLET_SPEED = 10;
+
 socket.on("connect", () => {
   console.log("Connected to server");
 });
@@ -9,7 +14,6 @@ socket.on("message", (message) => {
 socket.on("disconnect", () => {
   console.log("Disconnected from server");
 });
-
 // Get a reference to the canvas element
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
@@ -56,14 +60,7 @@ const boxes = [
   { x: 980, y: 464 },
   { x: 916, y: 464 },
 ];
-
-//let Images = [ blueCharImg, redCharImg, greenCharImg, yellowCharImg];
-// let playersTypes = [
-//   { x: 50, y: 300, img: blueCharImg },
-//   { x: 600, y: 50, img: redCharImg },
-//   { x: 1130, y: 300, img: greenCharImg },
-//   { x: 600, y: 600, img: yellowCharImg },
-// ];
+socket.emit('boxes', boxes);
 
 let players = [];
 let playerImages = [];
@@ -78,31 +75,59 @@ socket.on("players", (serverPlayers)=>{
     } else if (player.color === "yellow") {
       playerImages[player.id] = yellowCharImg;
     }
+    players = serverPlayers;
   }
-  players = serverPlayers;
+  
 });
 
 const inputs = {
   right: false,
   left: false,
-  up: false, 
+  up: false,
   down: false,
+  topRight: false,
+  topLeft: false,
+  bottomRight: false,
+  bottomLeft: false,
 };
 
 window.addEventListener('keydown', (event) => {
-  console.log(event.key);
   switch (event.key) {
     case "w":
-      inputs['up'] = true;
+      if (inputs.right) {
+        inputs.topRight = true;
+      } else if (inputs.left) {
+        inputs.topLeft = true;
+      } else {
+        inputs["up"] = true;
+      }
       break;
     case "s":
-      inputs['down'] = true;
+      if (inputs.right) {
+        inputs.bottomRight = true;
+      } else if (inputs.left) {
+        inputs.bottomLeft = true;
+      } else {
+        inputs["down"] = true;
+      }
       break;
     case "a":
-      inputs['left'] = true;
+      if (inputs.up) {
+        inputs.topLeft = true;
+      } else if (inputs.down) {
+        inputs.bottomLeft = true;
+      } else {
+        inputs["left"] = true;
+      }
       break;
     case "d":
-      inputs['right'] = true;
+      if (inputs.up) {
+        inputs.topRight = true;
+      } else if (inputs.down) {
+        inputs.bottomRight = true;
+      } else {
+        inputs["right"] = true;
+      }
       break;
     default:
       return;
@@ -111,19 +136,26 @@ window.addEventListener('keydown', (event) => {
 });        
 
 window.addEventListener("keyup", (event) => {
-  console.log(event.key);
   switch (event.key) {
     case "w":
       inputs['up'] = false;
+      inputs.topRight = false;
+      inputs.topLeft = false;
       break;
     case "s":
       inputs['down'] = false;
+      inputs.bottomRight = false;
+      inputs.bottomLeft = false;
       break;
     case "a":
       inputs['left'] = false;
+      inputs.topLeft = false;
+      inputs.bottomLeft = false;
       break;
     case "d":
       inputs['right'] = false;
+      inputs.topRight = false;
+      inputs.bottomRight = false;
       break;
     default:
       return;
@@ -131,71 +163,75 @@ window.addEventListener("keyup", (event) => {
   socket.emit("input", inputs);
 });
 
-// complete bullshit
-
-// // Listen for player movement updates
-// socket.on("playerMoved", (data) => {
-//   // Update the position of the player in the players array
-//   players.find((player) => player.id === data.id).x = data.x;
-//   players.find((player) => player.id === data.id).y = data.y;
-
-//   // Render the updated game
-//   renderGame();
-// });
-
-
-
-/*                                              // SONRA DONULECEK BURAYA
-// Handle shooting input (e.g., pressing the spacebar)
-document.addEventListener('keydown', (event) => {
-    if (event.key === ' ') {
-        // Emit a 'shoot' event to the server
-        socket.emit('shoot', { direction: players.direction }); // Assuming 'player.direction' contains the direction the player is facing
+let bullets = [];
+window.addEventListener("keydown", (event) => {
+  event.preventDefault();
+  const player = players.find((player) => player.id === socket.id);
+  if (event.key === " " && bullets.length < MAX_AMMO) {
+    const bullet = {
+      id: socket.id,
+      x: player.x + playerImages[player.id].width / 2 - 4,
+      y: player.y + playerImages[player.id].height / 2 - 4,
+      dir: player.dir,
+      active: true,
+    };
+    bullets.push(bullet);
+    socket.emit("shoot", bullet); 
+  } else if(event.key == 'r') {
+      if (bullets.length == 1) {
+        setTimeout(() => {
+          bullets = [];
+        }, 1000);
+      } else if (bullets.length == 2) {
+        setTimeout(() => {
+          bullets = [];
+        }, 2000);
+      } else if (bullets.length == 3) {
+        setTimeout(() => {
+          bullets = [];
+        }, 3000);
+      }
     }
 });
-// Handle player health update
-socket.on('playerHealthUpdated', (data) => {
-    // Update the player's health on the client-side
-    if (data.playerId === players.id) {
-        players.health = data.health;
-        // Update the UI to reflect the new health status
-        updateHealthUI(players.health);
-    }
+let readyBullets = [];
+socket.on("bullet", (bullets)=> {
+  readyBullets = bullets;
 });
 
-// Function to update the health UI
-function updateHealthUI(health) {
-    // Update the UI to display the player's health status (e.g., heart icons)
-    // This depends on your specific UI implementation
-}
-// Handle game over
-socket.on('gameOver', (data) => {
-    // Display the game-over message to players
-    if (data.winnerId === players.id) {
-        alert('You won the game!'); // Show a message if the current player is the winner
-    } else {
-        alert('Game over, You lost.'); // Show a message if the current player is not the winner
-    }
-});
-*/                                            // SONRA DONULECEK BURAYA
-
+let activeness = true;
 function renderGame() {
-  // Clear the canvas
-  //ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  console.log("fordan once");
-  
-  for (const player of players) {
-
-    console.log("fora girdi");
-    // Save the current state of the canvas
-    // ctx.save();
-    // Translate the canvas origin to the center of the player image
-    // ctx.translate(
-    //   player.x + player.img.width / 2,
-    //   player.y + player.img.height / 2
-    // );
+  for(const readyBullet of readyBullets){
     
+    socket.on("bullet_activeness", (activeness) => {
+      readyBullet.active = activeness;
+    });
+
+    if (readyBullet.active) {
+      ctx.drawImage(bulletImg, readyBullet.x, readyBullet.y);
+    } else {
+      ctx.clearRect(
+        readyBullet.x,
+        readyBullet.y,
+        bulletImg.width,
+        bulletImg.height
+      );
+    }
+  }
+  boxes.forEach((box) => {
+    ctx.drawImage(boxImg, box.x, box.y);
+  });
+
+  for (const player of players) {
+    // Save the current state of the canvas
+    ctx.save();
+    // // Translate the canvas origin to the center of the player image
+    ctx.translate(
+      player.x + playerImages[player.id].width / 2,
+      player.y + playerImages[player.id].height / 2
+    );
+
     // Rotate the canvas based on the player's direction
     switch (player.dir) {
       case "right":
@@ -207,18 +243,26 @@ function renderGame() {
       case "left":
         ctx.rotate(-Math.PI / 2); // Rotate 90 degrees counterclockwise
         break;
-      // No rotation needed for 'up' direction
+      case "topRight":
+        ctx.rotate(Math.PI / 4);
+        break;
+      case "bottomRight":
+        ctx.rotate(Math.PI * 3 / 4);
+        break;
+      case "topLeft":
+        ctx.rotate(-Math.PI / 4);
+        break;
+      case "bottomLeft":
+        ctx.rotate(-Math.PI * 3 / 4);
+        break;
     }
-    ctx.drawImage(playerImages[player.id], player.x, player.y);
     // Draw the player image with rotation applied
-    //ctx.drawImage(player.img, -player.img.width / 2, -player.img.height / 2);
+    ctx.drawImage(playerImages[player.id],-playerImages[player.id].width / 2,-playerImages[player.id].height / 2);    
   }
-  // Draw boxes
-  boxes.forEach(box => {
-    ctx.drawImage(boxImg, box.x, box.y);
-  });
-  // Request animation frame to continuously render the game
+  ctx.restore();
+
   window.requestAnimationFrame(renderGame);
 }
 
 window.requestAnimationFrame(renderGame);
+
