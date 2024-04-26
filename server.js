@@ -1,4 +1,3 @@
-//server.js
 const express = require("express");
 const cors = require("cors");
 const app = express();
@@ -12,19 +11,17 @@ const BULLET_SIZE = 8;
 const BULLET_DAMAGE = 1;
 const BULLET_SPEED = 10;
 const BULLET_DIASPEED = (BULLET_SPEED * Math.sqrt(2)) / 2;
-const BULLET_TICK_RATE = 30;
 const PLAYER_DIASPEED = PLAYER_SPEED * Math.sqrt(2) / 2;
-// Define a route to handle requests to the root URL
+
 app.get("/", (req, res) => {
     res.sendFile('index.html', { root: '.' });
 });
 app.use(cors({
   origin: "http://localhost:3000",
 }));
-// Serve static files from the 'public' directory
+
 app.use(express.static("public"));
 
-// Serve the Socket.IO client library
 app.use(
   "/socket.io",
   express.static(__dirname + "/node_modules/socket.io/client-dist")
@@ -43,14 +40,7 @@ let Players = [];
 let box = [];
 let bulletMap = [];
 let inputsMap = [];
-let startingPositions = [
-  { x: 50, y: 300, dir: "right", color: 'blue' },
-  { x: 600, y: 50, dir: "down", color: 'red' },
-  { x: 1130, y: 300, dir: "left", color: 'yellow' },
-  { x: 600, y: 600, dir: "up", color: 'green' },
-];
-let randomIndex = Math.floor(Math.random() * startingPositions.length);
-let startingPosition = startingPositions.splice(randomIndex, 1)[0];
+
 let collision = false;
 
 function isColliding(rect1, rect2, rect1size, rect2size) {
@@ -104,37 +94,36 @@ function tick() {
       }
     }
     if (collision) {
-      // Prevent movement in collision direction
-      if (input.topRight && collision) {
+      if (input.topRight) {
         player.x -= PLAYER_DIASPEED;
         player.y += PLAYER_DIASPEED;
       }
-      if (input.bottomRight && collision) {
+      if (input.bottomRight) {
         player.x -= PLAYER_DIASPEED;
         player.y -= PLAYER_DIASPEED;
       }
-      if (input.topLeft && collision) {
+      if (input.topLeft) {
         player.x += PLAYER_DIASPEED;
         player.y += PLAYER_DIASPEED;
       }
-      if (input.bottomLeft && collision) {
+      if (input.bottomLeft) {
         player.x += PLAYER_DIASPEED;
         player.y -= PLAYER_DIASPEED;
       }
-      if (input.up && collision) {
-        player.y += PLAYER_SPEED; // Revert slight movement if up is pressed and there's a collision
+      if (input.up) {
+        player.y += PLAYER_SPEED; 
         break;
       }
-      if (input.down && collision) {
-        player.y -= PLAYER_SPEED; // Revert slight movement if down is pressed and there's a collision
+      if (input.down) {
+        player.y -= PLAYER_SPEED; 
         break;
       }
-      if (input.left && collision) {
-        player.x += PLAYER_SPEED; // Revert slight movement if left is pressed and there's a collision
+      if (input.left) {
+        player.x += PLAYER_SPEED; 
         break;
       }
-      if (input.right && collision) {
-        player.x -= PLAYER_SPEED; // Revert slight movement if right is pressed and there's a collision
+      if (input.right) {
+        player.x -= PLAYER_SPEED; 
         break;
       }
     }
@@ -202,18 +191,18 @@ function bulletInteraction() {
       if (isColliding(player, bullet, PLAYER_SIZE, BULLET_SIZE) && bullet.id != player.id) {
         player.health -= BULLET_DAMAGE;
         bullet.active = false;
-        io.emit("playerHealthUpdated", {
+        gameNamespace.emit("playerHealthUpdated", {
           playerId: player.id,
           health: player.health,
         });
+        checkGameOver();
         break;
-      } else if ( bullet.x <= 0 || bullet.x >= 1256 || bullet.y <= 0 || bullet.y >= 708) {
-        
+      } else if (bullet.x <= 0 || bullet.x >= 1256 || bullet.y <= 0 || bullet.y >= 708) {
         bullet.active = false;
         break;
       }
     }
-    for( let eachbox of box) {
+    for (let eachbox of box) {
       if (isColliding(bullet, eachbox, BULLET_SIZE, BOX_SIZE)) {
         bullet.active = false;
         break;
@@ -225,6 +214,24 @@ function bulletInteraction() {
 
 function removeInactiveBullets() {
   bulletMap = bulletMap.filter((bullet) => bullet.active);
+}
+let startingPositions = [];
+function handleStartingPositions(){
+  startingPositions = [
+  { x: 50, y: 300, dir: "right", color: "blue" },
+  { x: 600, y: 50, dir: "down", color: "red" },
+  { x: 1130, y: 300, dir: "left", color: "yellow" },
+  { x: 600, y: 600, dir: "up", color: "green" },
+];
+}
+handleStartingPositions();
+function checkGameOver() {
+  let alivePlayers = Players.filter((player) => player.health > 0);
+  if (alivePlayers.length === 1) {
+    gameNamespace.emit("gameOver", alivePlayers[0].id);
+    startingPositions = [];
+    handleStartingPositions();
+  }
 }
 
 async function main(){
@@ -239,6 +246,9 @@ async function main(){
       console.log("Client disconnected");
       // Handle client disconnection
     });
+
+    let randomIndex = Math.floor(Math.random() * startingPositions.length);
+    let startingPosition = startingPositions.splice(randomIndex, 1)[0];
 
     inputsMap[socket.id] = {
       up: false,
@@ -260,11 +270,6 @@ async function main(){
       inputsMap[socket.id] = inputs;
     });
 
-    socket.on("disconnect", () => {
-      Players = Players.filter((player) => player.id !== socket.id);
-      gameNamespace.emit("playerLeft", socket.id);
-    });
-
     socket.on("boxes", (boxes) => {
       box = boxes;
     });
@@ -274,10 +279,12 @@ async function main(){
     });
   });
   server.listen(port);
-  setInterval(tick, 1000/TICK_RATE);
-  setInterval(updateBullets, 1000 / BULLET_TICK_RATE);
-  setInterval(bulletInteraction, 1000 / BULLET_TICK_RATE);
-  setInterval(removeInactiveBullets, 1000 / BULLET_TICK_RATE);
+  setInterval(() => {
+    tick();
+    removeInactiveBullets();
+    updateBullets();
+    bulletInteraction();
+  }, 1000 / TICK_RATE);
 };
 main();
 
